@@ -1,0 +1,79 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'com.prajwaldarekar.dailytask'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.prajwaldarekar.dailytask"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    viewBinding {
+        enabled = true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += [
+                    'META-INF/DEPENDENCIES',
+                    'META-INF/LICENSE',
+                    'META-INF/LICENSE.txt',
+                    'META-INF/license.txt',
+                    'META-INF/NOTICE',
+                    'META-INF/NOTICE.txt',
+                    'META-INF/notice.txt',
+                    'META-INF/AL2.0',
+                    'META-INF/LGPL2.1',
+                    'META-INF/*.kotlin_module',
+                    'META-INF/*.version',
+                    'META-INF/com.android.tools/proguard/coroutines.pro'
+            ]
+        }
+    }
+
+}
+
+dependencies {
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.navigation.fragment
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+
+    // Room
+    implementation libs.room.runtime
+    annotationProcessor libs.room.compiler
+
+    // Lifecycle ViewModel & LiveData
+    implementation libs.lifecycle.viewmodel
+    implementation libs.lifecycle.livedata
+    annotationProcessor libs.lifecycle.compiler
+
+    // UI
+    implementation libs.recyclerview
+    implementation libs.constraintlayout
+
+    // MaterialCalendarView
+    implementation libs.material.calendarview
+
+}
