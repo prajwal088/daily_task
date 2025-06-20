@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "583757066245",
+    "project_id": "daily-task-54194",
+    "storage_bucket": "daily-task-54194.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:583757066245:android:2fb7a9551679197e96ec6c",
+        "android_client_info": {
+          "package_name": "com.prajwaldarekar.dailytask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCP50jl0ogmRJ5xbRlvzi9K9MbEI-EEy9M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
