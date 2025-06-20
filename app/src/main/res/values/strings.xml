@@ -29,10 +29,9 @@
 
     <!-- Spinner type -->
     <string-array name="task_types">
+        <item>Task</item>
+        <item>Note</item>
         <item>Reminder</item>
-        <item>Meeting</item>
-        <item>Personal</item>
-        <item>Work</item>
     </string-array>
 
 

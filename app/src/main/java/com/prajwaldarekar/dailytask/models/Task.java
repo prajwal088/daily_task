@@ -27,7 +27,6 @@ public class Task implements Serializable {
     private TaskType type;
     private RepeatMode repeatMode;      // NONE, DAILY, WEEKLY, MONTHLY
     private long createdAt;     // Unix timestamp
-    private String notes;
 
     // 🔨 Default Constructor
     public Task() {
@@ -75,7 +74,4 @@ public class Task implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
 }

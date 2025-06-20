@@ -12,7 +12,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.prajwaldarekar.dailytask.R;
 import com.prajwaldarekar.dailytask.databinding.FragmentAddTaskDialogBinding;
 import com.prajwaldarekar.dailytask.models.RepeatMode;
 import com.prajwaldarekar.dailytask.models.Task;
@@ -95,6 +98,24 @@ public class AddTaskDialogFragment extends DialogFragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, typeLabels);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spinnerType.setAdapter(adapter);
+
+        // 🌟 Toggle Repeat layout based on selection
+        binding.spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                TaskType selectedType = TaskType.values()[position];
+                if (selectedType == TaskType.REMINDER) {
+                    binding.layoutRepeat.setVisibility(View.VISIBLE);
+                } else {
+                    binding.layoutRepeat.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                binding.layoutRepeat.setVisibility(View.GONE);
+            }
+        });
     }
 
 

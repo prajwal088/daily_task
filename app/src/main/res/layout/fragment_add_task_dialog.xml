@@ -96,6 +96,14 @@
             android:paddingTop="4dp" />
 
         <!-- Repeat Mode -->
+    <LinearLayout
+        android:id="@+id/layoutRepeat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_marginTop="8dp">
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -109,9 +117,10 @@
             android:layout_height="wrap_content"
             android:minHeight="48dp"
             android:paddingVertical="12dp" />
+    </LinearLayout>
 
-        <!-- Notes -->
-        <com.google.android.material.textfield.TextInputLayout
+         <!--Notes-->
+        <!--<com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/notes"
@@ -124,7 +133,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:minLines="2" />
-        </com.google.android.material.textfield.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>-->
 
         <!-- Buttons -->
         <LinearLayout

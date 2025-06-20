@@ -10,7 +10,7 @@ import androidx.room.TypeConverters;
 import com.prajwaldarekar.dailytask.models.Task;
 import com.prajwaldarekar.dailytask.utils.Converters;
 
-@Database(entities = {Task.class}, version = 2, exportSchema = false)
+@Database(entities = {Task.class}, version = 3, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
 
