@@ -1,5 +1,6 @@
 package com.prajwaldarekar.dailytask.models;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
@@ -21,7 +22,8 @@ public class Task implements Serializable {
     private String description;
     private Date date;      // Task date
     private Date time;      // Optional time
-    private boolean isCompleted;
+    @ColumnInfo(name = "isCompleted")
+    private Boolean isCompleted;
     private TaskType type;
     private RepeatMode repeatMode;      // NONE, DAILY, WEEKLY, MONTHLY
     private long createdAt;     // Unix timestamp
@@ -62,8 +64,8 @@ public class Task implements Serializable {
     public Date getTime() { return time; }
     public void setTime(Date time) { this.time = time; }
 
-    public boolean isCompleted() { return isCompleted; }
-    public void setCompleted(boolean completed) { isCompleted = completed; }
+    public Boolean isCompleted() { return isCompleted; }
+    public void setCompleted(Boolean completed) { isCompleted = completed; }
 
     public TaskType getType() { return type; }
     public void setType(TaskType type) { this.type = type; }

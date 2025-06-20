@@ -14,6 +14,8 @@ public class TaskRepository {
 
     private final TaskDao taskDao;
     private final LiveData<List<Task>> allTasks;
+    private final LiveData<List<Task>> completedTasks;
+    private final LiveData<List<Task>> pendingTasks;
 
     private final ExecutorService executorService;
 
@@ -21,11 +23,21 @@ public class TaskRepository {
         AppDatabase db = AppDatabase.getInstance(application);
         taskDao = db.taskDao();
         allTasks = taskDao.getAllTasks();
+        completedTasks = taskDao.getCompletedTasks();
+        pendingTasks = taskDao.getPendingTasks();
         executorService = Executors.newSingleThreadExecutor();
     }
 
     public LiveData<List<Task>> getAllTasks() {
         return allTasks;
+    }
+
+    public LiveData<List<Task>> getCompletedTasks() {
+        return completedTasks;
+    }
+
+    public LiveData<List<Task>> getPendingTasks() {
+        return pendingTasks;
     }
 
     public void insert(Task task) {

@@ -1,5 +1,9 @@
 package com.prajwaldarekar.dailytask.fragments;
 
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,6 +49,12 @@ public class TasksFragment extends Fragment {
     private void initViewModel() {
         taskViewModel = new ViewModelProvider(requireActivity()).get(TaskViewModel.class);
         taskAdapter = new TaskAdapter();
+
+        // ✅ Handle checkbox toggle to persist completed state
+        taskAdapter.setOnTaskCheckChangedListener((task, isChecked) -> {
+            task.setCompleted(isChecked);
+            taskViewModel.update(task);
+        });
     }
 
     private void setupRecyclerView() {
@@ -76,7 +86,7 @@ public class TasksFragment extends Fragment {
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getAdapterPosition();
+                int position = viewHolder.getBindingAdapterPosition();
                 Task task = taskAdapter.getTaskAtPosition(position);
 
                 if (direction == ItemTouchHelper.LEFT) {
@@ -88,6 +98,42 @@ public class TasksFragment extends Fragment {
                 }
 
                 taskAdapter.notifyItemChanged(position);
+            }
+            @Override
+            public void onChildDraw(@NonNull Canvas canvas, @NonNull RecyclerView recyclerView,
+                                    @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY,
+                                    int actionState, boolean isCurrentlyActive) {
+
+                super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+
+                View itemView = viewHolder.itemView;
+                Paint paint = new Paint();
+                float height = (float) itemView.getBottom() - itemView.getTop();
+
+                if (dX < 0) {
+                    // Swipe Left → Delete
+                    paint.setColor(Color.RED);
+                    RectF background = new RectF(itemView.getRight() + dX, itemView.getTop(),
+                            itemView.getRight(), itemView.getBottom());
+                    canvas.drawRect(background, paint);
+
+                    // Text
+                    paint.setColor(Color.WHITE);
+                    paint.setTextSize(40);
+                    paint.setTextAlign(Paint.Align.CENTER);
+                    canvas.drawText("Delete", itemView.getRight() - 150, itemView.getTop() + height / 2 + 15, paint);
+                } else if (dX > 0) {
+                    // Swipe Right → Edit
+                    paint.setColor(Color.BLUE);
+                    RectF background = new RectF(itemView.getLeft(), itemView.getTop(),
+                            itemView.getLeft() + dX, itemView.getBottom());
+                    canvas.drawRect(background, paint);
+
+                    paint.setColor(Color.WHITE);
+                    paint.setTextSize(40);
+                    paint.setTextAlign(Paint.Align.CENTER);
+                    canvas.drawText("Edit", itemView.getLeft() + 150, itemView.getTop() + height / 2 + 15, paint);
+                }
             }
         };
         new ItemTouchHelper(callback).attachToRecyclerView(binding.recyclerViewTasks);

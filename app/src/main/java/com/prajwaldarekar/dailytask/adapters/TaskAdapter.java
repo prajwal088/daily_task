@@ -1,5 +1,6 @@
 package com.prajwaldarekar.dailytask.adapters;
 
+import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,9 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     private final List<Task> taskList = new ArrayList<>();
     private OnTaskCheckChangedListener checkChangedListener;
 
+    private static final SimpleDateFormat dateFormat =
+            new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+
     public interface OnTaskCheckChangedListener {
         void onCheckChanged(Task task, boolean isChecked);
     }
@@ -37,7 +41,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         if (tasks != null) {
             taskList.addAll(tasks);
         }
-        notifyDataSetChanged();
+        notifyDataSetChanged(); // Consider DiffUtil for optimization
     }
 
     public Task getTaskAtPosition(int position) {
@@ -66,7 +70,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         final TextView textTitle, textType, textDate;
         final CheckBox checkBox;
         final View viewColorBadge;
-        final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -74,7 +77,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             textType = itemView.findViewById(R.id.textViewType);
             textDate = itemView.findViewById(R.id.textViewDate);
             checkBox = itemView.findViewById(R.id.checkBoxDone);
-            viewColorBadge = itemView.findViewById(R.id.viewColorBadge); // 🟩 Reference from XML
+            viewColorBadge = itemView.findViewById(R.id.viewColorBadge);
         }
 
         public void bind(Task task) {
@@ -87,33 +90,36 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                 textDate.setText("No Date");
             }
 
-            // ✅ Set badge color based on TaskType
-            int colorResId;
+            // 🎨 Badge color by type
+            int colorResId = R.color.green;
             switch (task.getType()) {
-                case REMINDER:
-                    colorResId = R.color.red;
-                    break;
-                case NOTE:
-                    colorResId = R.color.blue;
-                    break;
-                case TASK:
-                    colorResId = R.color.purple_500;
-                    break;
-                default:
-                    colorResId = R.color.green;
-                    break;
+                case REMINDER: colorResId = R.color.red; break;
+                case NOTE:     colorResId = R.color.blue; break;
+                case TASK:     colorResId = R.color.purple_500; break;
+            }
+            viewColorBadge.setBackgroundColor(
+                    ContextCompat.getColor(itemView.getContext(), colorResId)
+            );
+
+            // ☑ Prevent rebinding callback
+            checkBox.setOnCheckedChangeListener(null);
+            checkBox.setChecked(task.isCompleted());
+
+            // ✏️ Strike-through
+            if (task.isCompleted()) {
+                textTitle.setPaintFlags(textTitle.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            } else {
+                textTitle.setPaintFlags(textTitle.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
             }
 
-            viewColorBadge.setBackgroundColor(ContextCompat.getColor(itemView.getContext(), colorResId));
-
-            // ✅ Checkbox state
-            checkBox.setOnCheckedChangeListener(null); // prevent flicker on recycling
-            checkBox.setChecked(task.isCompleted());
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (checkChangedListener != null) {
+                if (checkChangedListener != null && isChecked != task.isCompleted()) {
                     checkChangedListener.onCheckChanged(task, isChecked);
                 }
             });
+
+            // Optional: Make whole item clickable
+            itemView.setOnClickListener(v -> checkBox.performClick());
         }
     }
 }

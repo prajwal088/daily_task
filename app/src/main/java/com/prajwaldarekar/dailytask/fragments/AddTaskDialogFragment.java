@@ -69,6 +69,7 @@ public class AddTaskDialogFragment extends DialogFragment {
 
     private void setupUI() {
         setupRepeatModeSpinner();
+        setupTaskTypeSpinner();
 
         if (existingTask != null) {
             binding.editTextTitle.setText(existingTask.getTitle());
@@ -82,6 +83,20 @@ public class AddTaskDialogFragment extends DialogFragment {
             updateDateTimeLabels();
         }
     }
+
+    private void setupTaskTypeSpinner() {
+        List<String> typeLabels = new ArrayList<>();
+        for (TaskType type : TaskType.values()) {
+            String label = type.name().toLowerCase(Locale.ROOT);
+            label = Character.toUpperCase(label.charAt(0)) + label.substring(1);
+            typeLabels.add(label);
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, typeLabels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.spinnerType.setAdapter(adapter);
+    }
+
 
     private void setupRepeatModeSpinner() {
         List<String> repeatLabels = new ArrayList<>();
@@ -167,6 +182,7 @@ public class AddTaskDialogFragment extends DialogFragment {
             existingTask.setTime(selectedDateTime.getTime());
             existingTask.setType(type);
             existingTask.setRepeatMode(repeatMode);
+            existingTask.setCompleted(existingTask.isCompleted()); // ✅ Preserve completion state
             taskViewModel.update(existingTask);
 
             if (type == TaskType.REMINDER) {

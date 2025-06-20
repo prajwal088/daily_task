@@ -38,7 +38,7 @@
                 android:id="@+id/textViewTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Task Title"
+                android:text="@string/task_title"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:maxLines="1"
@@ -50,7 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/textViewTitle"
-                android:text="REMINDER"
+                android:text="@string/reminder"
                 android:textSize="14sp"
                 android:textColor="@android:color/darker_gray" />
 
@@ -59,10 +59,15 @@
                 android:id="@+id/textViewDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/textViewTitle"
                 android:layout_alignParentEnd="true"
-                android:text="19 Jun"
+                android:layout_toEndOf="@id/textViewTitle"
+                android:layout_marginStart="10dp"
+                android:text="@string/_19_jun"
                 android:textStyle="italic"
                 android:textSize="14sp" />
+
+
 
             <!-- Completion Checkbox -->
             <CheckBox

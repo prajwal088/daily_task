@@ -14,18 +14,36 @@ import java.util.List;
 public class TaskViewModel extends AndroidViewModel {
 
     private final TaskRepository repository;
+
+    // LiveData for observing task states
     private final LiveData<List<Task>> allTasks;
+    private final LiveData<List<Task>> completedTasks;
+    private final LiveData<List<Task>> pendingTasks;
 
     public TaskViewModel(@NonNull Application application) {
         super(application);
-        repository = new TaskRepository(application);
-        allTasks = repository.getAllTasks();
+        this.repository = new TaskRepository(application);
+        this.allTasks = repository.getAllTasks();
+        this.completedTasks = repository.getCompletedTasks();
+        this.pendingTasks = repository.getPendingTasks();
     }
 
+    // 🟡 Get All Tasks
     public LiveData<List<Task>> getAllTasks() {
         return allTasks;
     }
 
+    // ✅ Get Completed Tasks
+    public LiveData<List<Task>> getCompletedTasks() {
+        return completedTasks;
+    }
+
+    // ❗ Get Pending Tasks
+    public LiveData<List<Task>> getPendingTasks() {
+        return pendingTasks;
+    }
+
+    // 🔧 Task Actions
     public void insert(Task task) {
         repository.insert(task);
     }

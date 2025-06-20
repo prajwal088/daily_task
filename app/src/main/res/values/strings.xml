@@ -2,4 +2,38 @@
     <string name="app_name">Daily Task</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Fragment Add Task Dialog -->
+    <string name="task_type">Task Type</string>
+    <string name="repeat">Repeat</string>
+    <string name="title">Title</string>
+    <string name="description">Description</string>
+    <string name="notes">Notes</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="pick_date">Pick Date</string>
+    <string name="pick_time_optional">Pick Time (optional)</string>
+    <string name="no_date_selected">No date selected</string>
+    <string name="no_time_selected">No time selected</string>
+
+    <!-- Fragment Calendar -->
+    <string name="tasks_for">Tasks for:</string>
+
+    <!--Fragment Task -->
+    <string name="add_task">Add Task</string>
+
+    <!-- Item Tasks -->
+    <string name="task_title">Task Title</string>
+    <string name="reminder">REMINDER</string>
+    <string name="_19_jun">19 Jun</string>
+
+    <!-- Spinner type -->
+    <string-array name="task_types">
+        <item>Reminder</item>
+        <item>Meeting</item>
+        <item>Personal</item>
+        <item>Work</item>
+    </string-array>
+
+
 </resources>

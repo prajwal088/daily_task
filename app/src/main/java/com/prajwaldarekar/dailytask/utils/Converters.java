@@ -12,12 +12,12 @@ public class Converters {
     // 🔁 --- Date converters ---
     @TypeConverter
     public static Date fromTimestamp(Long value) {
-        return value != null ? new Date(value) : null;
+        return value == null ? null : new Date(value); // ✅ fixed
     }
 
     @TypeConverter
     public static Long dateToTimestamp(Date date) {
-        return date != null ? date.getTime() : null;
+        return date == null ? null : date.getTime(); // ✅ fixed
     }
 
     // 🔁 --- TaskType enum converters ---
