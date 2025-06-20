@@ -60,6 +60,7 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 
+
     // Room
     implementation libs.room.runtime
     annotationProcessor libs.room.compiler
@@ -74,6 +75,6 @@ dependencies {
     implementation libs.constraintlayout
 
     // MaterialCalendarView
-    implementation libs.material.calendarview
+    implementation libs.calendarview
 
 }
