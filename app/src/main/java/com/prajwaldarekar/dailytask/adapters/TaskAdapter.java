@@ -1,5 +1,6 @@
 package com.prajwaldarekar.dailytask.adapters;
 
+import android.content.Context;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,13 +24,27 @@ import java.util.Locale;
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
     private final List<Task> taskList = new ArrayList<>();
+    private final Context context;
+    private OnTaskClickListener taskClickListener;
     private OnTaskCheckChangedListener checkChangedListener;
 
-    private static final SimpleDateFormat dateFormat =
-            new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+    private static final SimpleDateFormat dateTimeFormat =
+            new SimpleDateFormat("dd MMM yyyy | hh:mm a", Locale.getDefault());
+
+    public TaskAdapter(Context context) {
+        this.context = context;
+    }
+
+    public interface OnTaskClickListener {
+        void onTaskClick(Task task);
+    }
 
     public interface OnTaskCheckChangedListener {
         void onCheckChanged(Task task, boolean isChecked);
+    }
+
+    public void setOnTaskClickListener(OnTaskClickListener listener) {
+        this.taskClickListener = listener;
     }
 
     public void setOnTaskCheckChangedListener(OnTaskCheckChangedListener listener) {
@@ -41,7 +56,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         if (tasks != null) {
             taskList.addAll(tasks);
         }
-        notifyDataSetChanged(); // Consider DiffUtil for optimization
+        notifyDataSetChanged();
     }
 
     public Task getTaskAtPosition(int position) {
@@ -51,8 +66,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_task, parent, false);
+        View itemView = LayoutInflater.from(context).inflate(R.layout.item_task, parent, false);
         return new TaskViewHolder(itemView);
     }
 
@@ -75,51 +89,73 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             super(itemView);
             textTitle = itemView.findViewById(R.id.textViewTitle);
             textType = itemView.findViewById(R.id.textViewType);
-            textDate = itemView.findViewById(R.id.textViewDate);
+            textDate = itemView.findViewById(R.id.textViewDateTime);
             checkBox = itemView.findViewById(R.id.checkBoxDone);
             viewColorBadge = itemView.findViewById(R.id.viewColorBadge);
         }
 
         public void bind(Task task) {
             textTitle.setText(task.getTitle());
-            textType.setText(task.getType().name());
 
+            // Type label + Repeat if applicable
+            String typeLabel = task.getType().name();
+            if (task.getType() == TaskType.REMINDER) {
+                String repeat = (task.getRepeatMode() != null)
+                        ? task.getRepeatMode().toString() : "None";
+                typeLabel += " | " + repeat;
+            }
+            textType.setText(typeLabel);
+
+            // Date + Time
             if (task.getDate() != null) {
-                textDate.setText(dateFormat.format(task.getDate()));
+                textDate.setText(dateTimeFormat.format(task.getDate()));
             } else {
                 textDate.setText("No Date");
             }
 
-            // 🎨 Badge color by type
+            // Color badge
             int colorResId = R.color.green;
             switch (task.getType()) {
-                case REMINDER: colorResId = R.color.red; break;
-                case NOTE:     colorResId = R.color.blue; break;
-                case TASK:     colorResId = R.color.purple_500; break;
+                case REMINDER:
+                    colorResId = R.color.red;
+                    break;
+                case NOTE:
+                    colorResId = R.color.blue;
+                    break;
+                case TASK:
+                    colorResId = R.color.purple_500;
+                    break;
             }
             viewColorBadge.setBackgroundColor(
-                    ContextCompat.getColor(itemView.getContext(), colorResId)
+                    ContextCompat.getColor(context, colorResId)
             );
 
-            // ☑ Prevent rebinding callback
+            // Prevent rebinding side effects
             checkBox.setOnCheckedChangeListener(null);
             checkBox.setChecked(task.isCompleted());
 
-            // ✏️ Strike-through
-            if (task.isCompleted()) {
-                textTitle.setPaintFlags(textTitle.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            } else {
-                textTitle.setPaintFlags(textTitle.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+            // Strike-through if completed
+            for (TextView view : new TextView[]{textTitle, textType, textDate}) {
+                view.setPaintFlags(task.isCompleted()
+                        ? view.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
+                        : view.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
             }
 
+            // Handle checkbox check
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (checkChangedListener != null && isChecked != task.isCompleted()) {
                     checkChangedListener.onCheckChanged(task, isChecked);
                 }
             });
 
-            // Optional: Make whole item clickable
-            itemView.setOnClickListener(v -> checkBox.performClick());
+            // Handle item click
+            itemView.setOnClickListener(v -> {
+                if (taskClickListener != null) {
+                    taskClickListener.onTaskClick(task);
+                } else {
+                    checkBox.performClick(); // fallback
+                }
+            });
         }
     }
 }

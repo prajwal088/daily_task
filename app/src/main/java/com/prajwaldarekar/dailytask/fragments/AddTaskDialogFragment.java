@@ -14,7 +14,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,7 +21,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.prajwaldarekar.dailytask.R;
 import com.prajwaldarekar.dailytask.databinding.FragmentAddTaskDialogBinding;
 import com.prajwaldarekar.dailytask.models.RepeatMode;
 import com.prajwaldarekar.dailytask.models.Task;
@@ -80,7 +78,14 @@ public class AddTaskDialogFragment extends DialogFragment {
             selectedDateTime.setTime(existingTask.getDate() != null ? existingTask.getDate() : Calendar.getInstance().getTime());
             updateDateTimeLabels();
             binding.spinnerType.setSelection(existingTask.getType().ordinal());
-            binding.spinnerRepeatMode.setSelection(existingTask.getRepeatMode().ordinal());
+
+            // Only show repeat section if it's a reminder
+            if (existingTask.getType() == TaskType.REMINDER) {
+                binding.layoutRepeat.setVisibility(View.VISIBLE);
+                binding.spinnerRepeatMode.setSelection(existingTask.getRepeatMode().ordinal());
+            } else {
+                binding.layoutRepeat.setVisibility(View.GONE);
+            }
         } else {
             selectedDateTime.setTimeInMillis(System.currentTimeMillis());
             updateDateTimeLabels();
@@ -99,16 +104,11 @@ public class AddTaskDialogFragment extends DialogFragment {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spinnerType.setAdapter(adapter);
 
-        // 🌟 Toggle Repeat layout based on selection
         binding.spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 TaskType selectedType = TaskType.values()[position];
-                if (selectedType == TaskType.REMINDER) {
-                    binding.layoutRepeat.setVisibility(View.VISIBLE);
-                } else {
-                    binding.layoutRepeat.setVisibility(View.GONE);
-                }
+                binding.layoutRepeat.setVisibility(selectedType == TaskType.REMINDER ? View.VISIBLE : View.GONE);
             }
 
             @Override
@@ -117,7 +117,6 @@ public class AddTaskDialogFragment extends DialogFragment {
             }
         });
     }
-
 
     private void setupRepeatModeSpinner() {
         List<String> repeatLabels = new ArrayList<>();
@@ -177,77 +176,70 @@ public class AddTaskDialogFragment extends DialogFragment {
 
     private void saveTask() {
         try {
-        String title = binding.editTextTitle.getText().toString().trim();
-        String description = binding.editTextDescription.getText().toString().trim();
-        int repeatIndex = binding.spinnerRepeatMode.getSelectedItemPosition();
-        RepeatMode repeatMode = RepeatMode.values()[repeatIndex];
-        TaskType type = TaskType.values()[binding.spinnerType.getSelectedItemPosition()];
-
-        // ✅ Title required
-        if (TextUtils.isEmpty(title)) {
-            binding.editTextTitle.setError("Title is required");
-            binding.editTextTitle.requestFocus();
-            return;
-        }
-
-        // ✅ Date required
-        if (binding.textViewDate.getText().toString().equals("Select Date")) {
-            Toast.makeText(requireContext(), "Please select a date", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (existingTask != null) {
-            existingTask.setTitle(title);
-            existingTask.setDescription(description);
-            existingTask.setDate(selectedDateTime.getTime());
-            existingTask.setTime(selectedDateTime.getTime());
-            existingTask.setType(type);
-            existingTask.setRepeatMode(repeatMode);
-            existingTask.setCompleted(existingTask.isCompleted()); // ✅ Preserve completion state
-            taskViewModel.update(existingTask);
+            String title = binding.editTextTitle.getText().toString().trim();
+            String description = binding.editTextDescription.getText().toString().trim();
+            TaskType type = TaskType.values()[binding.spinnerType.getSelectedItemPosition()];
+            RepeatMode repeatMode = RepeatMode.NONE;
 
             if (type == TaskType.REMINDER) {
-                ReminderUtils.scheduleReminder(requireContext(), existingTask);
-            }
+                int repeatIndex = binding.spinnerRepeatMode.getSelectedItemPosition();
+                repeatMode = RepeatMode.values()[repeatIndex];
 
-            Toast.makeText(requireContext(), "Task updated", Toast.LENGTH_SHORT).show();
-        } else {
-            Task newTask = new Task();
-            newTask.setTitle(title);
-            newTask.setDescription(description);
-            newTask.setDate(selectedDateTime.getTime());
-            newTask.setTime(selectedDateTime.getTime());
-            newTask.setType(type);
-            newTask.setRepeatMode(repeatMode);
-            newTask.setCompleted(false);
-            newTask.setCreatedAt(System.currentTimeMillis());
-
-            taskViewModel.insert(newTask);
-
-            // 🔔 Ask for exact alarm permission on Android 12+
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
-                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
-                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                    startActivity(intent);
-                    Toast.makeText(requireContext(), "Please allow exact alarm permission to enable reminders", Toast.LENGTH_LONG).show();
+                if (repeatMode != RepeatMode.NONE && binding.textViewTime.getText().toString().equals("Select Time")) {
+                    Toast.makeText(requireContext(), "Please select a time for recurring reminders", Toast.LENGTH_SHORT).show();
+                    return;
                 }
             }
 
-            if (type == TaskType.REMINDER) {
-                ReminderUtils.scheduleReminder(requireContext(), newTask);
-            }
-
-            if (repeatMode != RepeatMode.NONE && binding.textViewTime.getText().toString().equals("Select Time")) {
-                Toast.makeText(requireContext(), "Please select a time for recurring tasks", Toast.LENGTH_SHORT).show();
+            if (TextUtils.isEmpty(title)) {
+                binding.editTextTitle.setError("Title is required");
+                binding.editTextTitle.requestFocus();
                 return;
             }
 
+            if (existingTask != null) {
+                existingTask.setTitle(title);
+                existingTask.setDescription(description);
+                existingTask.setDate(selectedDateTime.getTime());
+                existingTask.setTime(selectedDateTime.getTime());
+                existingTask.setType(type);
+                existingTask.setRepeatMode(repeatMode);
+                taskViewModel.update(existingTask);
 
-            Toast.makeText(requireContext(), "Task added", Toast.LENGTH_SHORT).show();
-        }
+                if (type == TaskType.REMINDER) {
+                    ReminderUtils.scheduleReminder(requireContext(), existingTask);
+                }
 
-        dismiss();
+                Toast.makeText(requireContext(), "Task updated", Toast.LENGTH_SHORT).show();
+            } else {
+                Task newTask = new Task();
+                newTask.setTitle(title);
+                newTask.setDescription(description);
+                newTask.setDate(selectedDateTime.getTime());
+                newTask.setTime(selectedDateTime.getTime());
+                newTask.setType(type);
+                newTask.setRepeatMode(repeatMode);
+                newTask.setCompleted(false);
+                newTask.setCreatedAt(System.currentTimeMillis());
+
+                taskViewModel.insert(newTask);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+                    if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                        startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM));
+                        Toast.makeText(requireContext(), "Please allow exact alarm permission to enable reminders", Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                if (type == TaskType.REMINDER) {
+                    ReminderUtils.scheduleReminder(requireContext(), newTask);
+                }
+
+                Toast.makeText(requireContext(), "Task added", Toast.LENGTH_SHORT).show();
+            }
+
+            dismiss();
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(requireContext(), "Failed to save task: " + e.getMessage(), Toast.LENGTH_LONG).show();

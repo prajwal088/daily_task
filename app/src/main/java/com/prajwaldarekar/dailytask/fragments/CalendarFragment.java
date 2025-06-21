@@ -11,7 +11,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.prajwaldarekar.dailytask.adapters.CalendarTaskAdapter;
+import com.prajwaldarekar.dailytask.adapters.TaskAdapter;
 import com.prajwaldarekar.dailytask.databinding.FragmentCalendarBinding;
 import com.prajwaldarekar.dailytask.models.Task;
 import com.prajwaldarekar.dailytask.viewmodel.TaskViewModel;
@@ -26,7 +26,7 @@ import java.util.Locale;
 public class CalendarFragment extends Fragment {
 
     private FragmentCalendarBinding binding;
-    private CalendarTaskAdapter calendarTaskAdapter;
+    private TaskAdapter taskAdapter;
     private TaskViewModel taskViewModel;
 
     private final Calendar selectedDate = Calendar.getInstance();
@@ -48,9 +48,11 @@ public class CalendarFragment extends Fragment {
     }
 
     private void initRecyclerView() {
-        calendarTaskAdapter = new CalendarTaskAdapter(requireContext(), new ArrayList<>(), this::showUpdateDialog);
+        taskAdapter = new TaskAdapter(requireContext());
+        taskAdapter.setOnTaskClickListener(this::showUpdateDialog);
+
         binding.recyclerViewCalendarTasks.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.recyclerViewCalendarTasks.setAdapter(calendarTaskAdapter);
+        binding.recyclerViewCalendarTasks.setAdapter(taskAdapter);
     }
 
     private void initViewModel() {
@@ -84,7 +86,7 @@ public class CalendarFragment extends Fragment {
             }
         }
 
-        calendarTaskAdapter.setTasks(filtered);
+        taskAdapter.setTasks(filtered);
 
         if (filtered.isEmpty()) {
             binding.textViewSelectedDate.append(" (No tasks)");

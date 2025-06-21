@@ -48,12 +48,18 @@ public class TasksFragment extends Fragment {
 
     private void initViewModel() {
         taskViewModel = new ViewModelProvider(requireActivity()).get(TaskViewModel.class);
-        taskAdapter = new TaskAdapter();
+        taskAdapter = new TaskAdapter(requireContext());
 
         // ✅ Handle checkbox toggle to persist completed state
         taskAdapter.setOnTaskCheckChangedListener((task, isChecked) -> {
             task.setCompleted(isChecked);
             taskViewModel.update(task);
+        });
+
+        // Optionally allow editing by clicking the item
+        taskAdapter.setOnTaskClickListener(task -> {
+            AddTaskDialogFragment dialog = AddTaskDialogFragment.newInstance(task);
+            dialog.show(getParentFragmentManager(), "editTask");
         });
     }
 
@@ -99,6 +105,7 @@ public class TasksFragment extends Fragment {
 
                 taskAdapter.notifyItemChanged(position);
             }
+
             @Override
             public void onChildDraw(@NonNull Canvas canvas, @NonNull RecyclerView recyclerView,
                                     @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY,

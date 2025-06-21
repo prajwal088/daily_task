@@ -25,7 +25,7 @@
     <!-- Item Tasks -->
     <string name="task_title">Task Title</string>
     <string name="reminder">REMINDER</string>
-    <string name="_19_jun">19 Jun</string>
+    <string name="_20_jun_2025_03_30_pm">20 Jun 2025 | 03:30 PM</string>
 
     <!-- Spinner type -->
     <string-array name="task_types">

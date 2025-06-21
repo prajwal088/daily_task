@@ -4,5 +4,6 @@ public enum RepeatMode {
     NONE,
     DAILY,
     WEEKLY,
-    MONTHLY
+    MONTHLY,
+    YEARLY
 }
