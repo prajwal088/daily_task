@@ -25,6 +25,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     private final List<Task> taskList = new ArrayList<>();
     private final Context context;
+
     private OnTaskClickListener taskClickListener;
     private OnTaskCheckChangedListener checkChangedListener;
 
@@ -35,6 +36,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         this.context = context;
     }
 
+    // ✅ Interface for click listener
     public interface OnTaskClickListener {
         void onTaskClick(Task task);
     }
@@ -97,16 +99,15 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         public void bind(Task task) {
             textTitle.setText(task.getTitle());
 
-            // Type label + Repeat if applicable
+            // Type label
             String typeLabel = task.getType().name();
             if (task.getType() == TaskType.REMINDER) {
-                String repeat = (task.getRepeatMode() != null)
-                        ? task.getRepeatMode().toString() : "None";
+                String repeat = (task.getRepeatMode() != null) ? task.getRepeatMode().toString() : "None";
                 typeLabel += " | " + repeat;
             }
             textType.setText(typeLabel);
 
-            // Date + Time
+            // DateTime
             if (task.getDate() != null) {
                 textDate.setText(dateTimeFormat.format(task.getDate()));
             } else {
@@ -126,36 +127,37 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                     colorResId = R.color.purple_500;
                     break;
             }
-            viewColorBadge.setBackgroundColor(
-                    ContextCompat.getColor(context, colorResId)
-            );
+            viewColorBadge.setBackgroundColor(ContextCompat.getColor(context, colorResId));
 
-            // Prevent rebinding side effects
-            checkBox.setOnCheckedChangeListener(null);
+            // CheckBox setup
+            checkBox.setOnCheckedChangeListener(null); // prevent recycling issues
             checkBox.setChecked(task.isCompleted());
 
-            // Strike-through if completed
-            for (TextView view : new TextView[]{textTitle, textType, textDate}) {
-                view.setPaintFlags(task.isCompleted()
-                        ? view.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
-                        : view.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
-            }
+            // Strike-through
+            applyStrikeThrough(task.isCompleted());
 
-            // Handle checkbox check
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (checkChangedListener != null && isChecked != task.isCompleted()) {
                     checkChangedListener.onCheckChanged(task, isChecked);
                 }
             });
 
-            // Handle item click
+            // Task card click
             itemView.setOnClickListener(v -> {
                 if (taskClickListener != null) {
                     taskClickListener.onTaskClick(task);
-                } else {
-                    checkBox.performClick(); // fallback
                 }
             });
+        }
+
+        private void applyStrikeThrough(boolean isCompleted) {
+            int flag = isCompleted ? Paint.STRIKE_THRU_TEXT_FLAG : 0;
+            for (TextView tv : new TextView[]{textTitle, textType, textDate}) {
+                tv.setPaintFlags(isCompleted
+                        ? tv.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
+                        : tv.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG
+                );
+            }
         }
     }
 }

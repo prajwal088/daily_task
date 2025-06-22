@@ -27,6 +27,12 @@
     <string name="reminder">REMINDER</string>
     <string name="_20_jun_2025_03_30_pm">20 Jun 2025 | 03:30 PM</string>
 
+    <!-- Task Details Dialog -->
+    <string name="task_title_01">Task Title</string>
+    <string name="task_description_here">Task description here</string>
+    <string name="edit">Edit</string>
+    <string name="close">Close</string>
+
     <!-- Spinner type -->
     <string-array name="task_types">
         <item>Task</item>

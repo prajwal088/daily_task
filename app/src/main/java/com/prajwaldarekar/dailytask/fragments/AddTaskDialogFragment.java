@@ -75,11 +75,12 @@ public class AddTaskDialogFragment extends DialogFragment {
         if (existingTask != null) {
             binding.editTextTitle.setText(existingTask.getTitle());
             binding.editTextDescription.setText(existingTask.getDescription());
+
             selectedDateTime.setTime(existingTask.getDate() != null ? existingTask.getDate() : Calendar.getInstance().getTime());
             updateDateTimeLabels();
+
             binding.spinnerType.setSelection(existingTask.getType().ordinal());
 
-            // Only show repeat section if it's a reminder
             if (existingTask.getType() == TaskType.REMINDER) {
                 binding.layoutRepeat.setVisibility(View.VISIBLE);
                 binding.spinnerRepeatMode.setSelection(existingTask.getRepeatMode().ordinal());
@@ -204,6 +205,7 @@ public class AddTaskDialogFragment extends DialogFragment {
                 existingTask.setTime(selectedDateTime.getTime());
                 existingTask.setType(type);
                 existingTask.setRepeatMode(repeatMode);
+
                 taskViewModel.update(existingTask);
 
                 if (type == TaskType.REMINDER) {

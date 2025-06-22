@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +29,7 @@ public class TasksFragment extends Fragment {
     private FragmentTasksBinding binding;
     private TaskAdapter taskAdapter;
     private TaskViewModel taskViewModel;
+    private static final String TAG = "TasksFragment";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -50,16 +52,21 @@ public class TasksFragment extends Fragment {
         taskViewModel = new ViewModelProvider(requireActivity()).get(TaskViewModel.class);
         taskAdapter = new TaskAdapter(requireContext());
 
-        // ✅ Handle checkbox toggle to persist completed state
         taskAdapter.setOnTaskCheckChangedListener((task, isChecked) -> {
             task.setCompleted(isChecked);
             taskViewModel.update(task);
         });
 
-        // Optionally allow editing by clicking the item
         taskAdapter.setOnTaskClickListener(task -> {
-            AddTaskDialogFragment dialog = AddTaskDialogFragment.newInstance(task);
-            dialog.show(getParentFragmentManager(), "editTask");
+            try {
+                TaskDetailsDialogFragment dialog = TaskDetailsDialogFragment.newInstance(task);
+                if (getParentFragmentManager() != null) {
+                    dialog.show(getParentFragmentManager(), "taskDetail");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing TaskDetailsDialogFragment", e);
+                Toast.makeText(requireContext(), "Unable to open task details", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -69,14 +76,23 @@ public class TasksFragment extends Fragment {
     }
 
     private void observeTasks() {
-        taskViewModel.getAllTasks().observe(getViewLifecycleOwner(), taskAdapter::setTasks);
+        taskViewModel.getAllTasks().observe(getViewLifecycleOwner(), tasks -> {
+            if (tasks != null) {
+                taskAdapter.setTasks(tasks);
+            }
+        });
     }
 
     private void setupFab() {
-        binding.fabAddTask.setOnClickListener(v ->
+        binding.fabAddTask.setOnClickListener(v -> {
+            try {
                 AddTaskDialogFragment.newInstance(null)
-                        .show(getParentFragmentManager(), "addTask")
-        );
+                        .show(getParentFragmentManager(), "addTask");
+            } catch (Exception e) {
+                Log.e(TAG, "Error opening AddTaskDialogFragment", e);
+                Toast.makeText(requireContext(), "Unable to open add task dialog", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupSwipeActions() {
@@ -95,12 +111,19 @@ public class TasksFragment extends Fragment {
                 int position = viewHolder.getBindingAdapterPosition();
                 Task task = taskAdapter.getTaskAtPosition(position);
 
+                if (task == null) return;
+
                 if (direction == ItemTouchHelper.LEFT) {
                     taskViewModel.delete(task);
                     Toast.makeText(requireContext(), "Task deleted", Toast.LENGTH_SHORT).show();
                 } else if (direction == ItemTouchHelper.RIGHT) {
-                    AddTaskDialogFragment dialog = AddTaskDialogFragment.newInstance(task);
-                    dialog.show(getParentFragmentManager(), "editTask");
+                    try {
+                        AddTaskDialogFragment.newInstance(task)
+                                .show(getParentFragmentManager(), "editTask");
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error opening edit task dialog", e);
+                        Toast.makeText(requireContext(), "Unable to edit task", Toast.LENGTH_SHORT).show();
+                    }
                 }
 
                 taskAdapter.notifyItemChanged(position);
@@ -114,8 +137,11 @@ public class TasksFragment extends Fragment {
                 super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
 
                 View itemView = viewHolder.itemView;
-                Paint paint = new Paint();
                 float height = (float) itemView.getBottom() - itemView.getTop();
+                Paint paint = new Paint();
+                paint.setTextSize(40);
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setAntiAlias(true);
 
                 if (dX < 0) {
                     // Swipe Left → Delete
@@ -124,11 +150,10 @@ public class TasksFragment extends Fragment {
                             itemView.getRight(), itemView.getBottom());
                     canvas.drawRect(background, paint);
 
-                    // Text
                     paint.setColor(Color.WHITE);
-                    paint.setTextSize(40);
-                    paint.setTextAlign(Paint.Align.CENTER);
-                    canvas.drawText("Delete", itemView.getRight() - 150, itemView.getTop() + height / 2 + 15, paint);
+                    canvas.drawText("Delete", itemView.getRight() - 150,
+                            itemView.getTop() + height / 2 + 15, paint);
+
                 } else if (dX > 0) {
                     // Swipe Right → Edit
                     paint.setColor(Color.BLUE);
@@ -137,12 +162,12 @@ public class TasksFragment extends Fragment {
                     canvas.drawRect(background, paint);
 
                     paint.setColor(Color.WHITE);
-                    paint.setTextSize(40);
-                    paint.setTextAlign(Paint.Align.CENTER);
-                    canvas.drawText("Edit", itemView.getLeft() + 150, itemView.getTop() + height / 2 + 15, paint);
+                    canvas.drawText("Edit", itemView.getLeft() + 150,
+                            itemView.getTop() + height / 2 + 15, paint);
                 }
             }
         };
+
         new ItemTouchHelper(callback).attachToRecyclerView(binding.recyclerViewTasks);
     }
 
