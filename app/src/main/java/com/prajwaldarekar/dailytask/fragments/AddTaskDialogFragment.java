@@ -93,6 +93,7 @@ public class AddTaskDialogFragment extends DialogFragment {
         }
     }
 
+    // Select task type
     private void setupTaskTypeSpinner() {
         List<String> typeLabels = new ArrayList<>();
         for (TaskType type : TaskType.values()) {

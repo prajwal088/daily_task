@@ -18,6 +18,7 @@ import com.prajwaldarekar.dailytask.models.TaskType;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -36,7 +37,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         this.context = context;
     }
 
-    // ✅ Interface for click listener
     public interface OnTaskClickListener {
         void onTaskClick(Task task);
     }
@@ -99,7 +99,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         public void bind(Task task) {
             textTitle.setText(task.getTitle());
 
-            // Type label
+            // 🔷 Type label
             String typeLabel = task.getType().name();
             if (task.getType() == TaskType.REMINDER) {
                 String repeat = (task.getRepeatMode() != null) ? task.getRepeatMode().toString() : "None";
@@ -107,18 +107,24 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             }
             textType.setText(typeLabel);
 
-            // DateTime
-            if (task.getDate() != null) {
-                textDate.setText(dateTimeFormat.format(task.getDate()));
+            // 🔶 Handle Date Display + Missed Reminder Color
+            Date taskDate = task.getDate();
+            boolean isMissedReminder = false;
+
+            if (taskDate != null) {
+                textDate.setText(dateTimeFormat.format(taskDate));
+                if (task.getType() == TaskType.REMINDER && !task.isCompleted()) {
+                    isMissedReminder = taskDate.before(new Date());
+                }
             } else {
                 textDate.setText("No Date");
             }
 
-            // Color badge
+            // 🎨 Color Badge Logic
             int colorResId = R.color.green;
             switch (task.getType()) {
                 case REMINDER:
-                    colorResId = R.color.red;
+                    colorResId = isMissedReminder ? R.color.red : R.color.green;
                     break;
                 case NOTE:
                     colorResId = R.color.blue;
@@ -129,11 +135,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             }
             viewColorBadge.setBackgroundColor(ContextCompat.getColor(context, colorResId));
 
-            // CheckBox setup
-            checkBox.setOnCheckedChangeListener(null); // prevent recycling issues
+            // ✅ CheckBox setup
+            checkBox.setOnCheckedChangeListener(null); // avoid recycling issues
             checkBox.setChecked(task.isCompleted());
 
-            // Strike-through
             applyStrikeThrough(task.isCompleted());
 
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -142,7 +147,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                 }
             });
 
-            // Task card click
+            // 📱 Item Click
             itemView.setOnClickListener(v -> {
                 if (taskClickListener != null) {
                     taskClickListener.onTaskClick(task);
@@ -151,7 +156,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         }
 
         private void applyStrikeThrough(boolean isCompleted) {
-            int flag = isCompleted ? Paint.STRIKE_THRU_TEXT_FLAG : 0;
             for (TextView tv : new TextView[]{textTitle, textType, textDate}) {
                 tv.setPaintFlags(isCompleted
                         ? tv.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
