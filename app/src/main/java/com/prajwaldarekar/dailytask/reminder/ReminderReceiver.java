@@ -15,22 +15,27 @@ public class ReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         try {
-            // ✅ Extract task details from intent
+            // 🧾 Extract data from intent
             String title = intent.getStringExtra("title");
             String repeatMode = intent.getStringExtra("repeatMode");
-            long taskId = intent.getLongExtra("taskId", -1);
+            long taskId = intent.getLongExtra("taskId", -1L);
             long createdAt = intent.getLongExtra("createdAt", System.currentTimeMillis());
 
-            // ✅ Validate title
+            // 🛡 Validate taskId and title
+            if (taskId == -1L) {
+                FirebaseCrashlytics.getInstance().log("Invalid taskId in ReminderReceiver");
+                return;
+            }
+
             String taskTitle = title != null ? title : "Reminder";
 
-            // ⏰ Check if this reminder is overdue (missed trigger)
+            // ⏰ Check for missed reminder
             long currentTime = System.currentTimeMillis();
-            if (currentTime - createdAt > 10 * 60 * 1000) { // Overdue by >10 mins
+            if (currentTime - createdAt > 10 * 60 * 1000) {
                 Toast.makeText(context, "⏰ Missed reminder: " + taskTitle, Toast.LENGTH_LONG).show();
             }
 
-            // 🔔 Show the notification
+            // 🔔 Show notification
             NotificationUtils.createNotificationChannel(context);
             NotificationUtils.showReminderNotification(
                     context,
@@ -38,13 +43,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                     "⏰ Don't forget this task!"
             );
 
-            // 🔁 Reschedule if it's a repeating task
-            if (taskId != -1 && repeatMode != null && !"NONE".equalsIgnoreCase(repeatMode)) {
+            // 🔁 Reschedule if repeating
+            if (repeatMode != null && !"NONE".equalsIgnoreCase(repeatMode)) {
                 long nextTriggerTime = calculateNextTriggerTime(currentTime, repeatMode);
 
-                // 📦 Fallback: Inexact if next time is invalid
                 if (nextTriggerTime <= currentTime) {
-                    nextTriggerTime = currentTime + 12 * 60 * 60 * 1000; // +12 hrs fallback
+                    nextTriggerTime = currentTime + 12 * 60 * 60 * 1000; // Fallback +12 hours
                     FirebaseCrashlytics.getInstance().log("⏰ Fallback inexact alarm set for task ID: " + taskId);
                 }
 

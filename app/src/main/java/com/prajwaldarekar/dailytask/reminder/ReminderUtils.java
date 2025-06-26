@@ -15,13 +15,13 @@ import java.util.Calendar;
 public class ReminderUtils {
 
     /**
-     * 📅 Public method to schedule a reminder using a Task object.
+     * 📅 Schedule a reminder from a Task object.
      */
     public static void scheduleReminder(Context context, Task task) {
         try {
             if (task.getDate() == null || task.getTime() == null) return;
 
-            // Combine date and time
+            // 🕒 Combine date and time
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(task.getDate());
 
@@ -40,10 +40,10 @@ public class ReminderUtils {
                 return;
             }
 
-            // Cancel existing reminder before scheduling a new one
+            // ❌ Cancel previous reminder if any
             cancelReminder(context, task.getId());
 
-            // Schedule reminder
+            // ✅ Schedule new reminder
             scheduleReminderInternal(
                     context,
                     task.getId(),
@@ -55,20 +55,19 @@ public class ReminderUtils {
 
         } catch (Exception e) {
             FirebaseCrashlytics.getInstance().recordException(e);
-            e.printStackTrace();
             Toast.makeText(context, "Failed to schedule reminder.", Toast.LENGTH_SHORT).show();
         }
     }
 
     /**
-     * 📢 Schedule reminder used internally by BroadcastReceiver or manual retry
+     * 🔁 Public method for rescheduling (e.g., from receiver).
      */
     public static void scheduleReminder(Context context, long taskId, String title, long triggerTime, String repeatMode, long createdAt) {
         scheduleReminderInternal(context, taskId, title, triggerTime, repeatMode, createdAt);
     }
 
     /**
-     * 🛠 Internal logic to schedule exact or fallback reminder
+     * 🔧 Internal alarm scheduling logic.
      */
     private static void scheduleReminderInternal(Context context, long taskId, String title,
                                                  long triggerTime, String repeatMode, long createdAt) {
@@ -79,9 +78,11 @@ public class ReminderUtils {
             intent.putExtra("repeatMode", repeatMode);
             intent.putExtra("createdAt", createdAt);
 
+            int requestCode = Long.valueOf(taskId).hashCode();
+
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    (int) taskId,
+                    requestCode,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
@@ -90,7 +91,7 @@ public class ReminderUtils {
 
             if (alarmManager == null) {
                 Toast.makeText(context, "Alarm Manager unavailable", Toast.LENGTH_SHORT).show();
-                FirebaseCrashlytics.getInstance().log("AlarmManager was null while scheduling reminder for task ID: " + taskId);
+                FirebaseCrashlytics.getInstance().log("AlarmManager is null for task ID: " + taskId);
                 return;
             }
 
@@ -98,35 +99,35 @@ public class ReminderUtils {
                 if (alarmManager.canScheduleExactAlarms()) {
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
                 } else {
-                    // Fallback to inexact
                     alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
                     FirebaseCrashlytics.getInstance().log("Fallback to inexact alarm for task ID: " + taskId);
-                    Toast.makeText(context, "Reminder scheduled inexactly. Allow exact alarms in system settings.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "Reminder scheduled inexactly. Allow exact alarms in settings.", Toast.LENGTH_LONG).show();
                 }
             } else {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
             }
 
         } catch (SecurityException se) {
-            se.printStackTrace();
             FirebaseCrashlytics.getInstance().recordException(se);
-            Toast.makeText(context, "Permission issue while scheduling reminder.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Permission issue scheduling reminder.", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            e.printStackTrace();
             FirebaseCrashlytics.getInstance().recordException(e);
             Toast.makeText(context, "Failed to schedule reminder.", Toast.LENGTH_SHORT).show();
         }
     }
 
     /**
-     * ❌ Cancel a previously scheduled reminder
+     * ❌ Cancel a previously scheduled reminder.
      */
-    public static void cancelReminder(Context context, int taskId) {
+    public static void cancelReminder(Context context, long taskId) {
         try {
             Intent intent = new Intent(context, ReminderReceiver.class);
+
+            int requestCode = Long.valueOf(taskId).hashCode();
+
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    taskId,
+                    requestCode,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
@@ -138,7 +139,6 @@ public class ReminderUtils {
             }
         } catch (Exception e) {
             FirebaseCrashlytics.getInstance().recordException(e);
-            e.printStackTrace();
         }
     }
 }

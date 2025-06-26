@@ -26,6 +26,7 @@
     <string name="task_title">Task Title</string>
     <string name="reminder">REMINDER</string>
     <string name="_20_jun_2025_03_30_pm">20 Jun 2025 | 03:30 PM</string>
+    <string name="mark_task_complete">Mark Task Complete</string>
 
     <!-- Task Details Dialog -->
     <string name="task_title_01">Task Title</string>
