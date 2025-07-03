@@ -110,6 +110,28 @@ public class TasksFragment extends Fragment {
                                     task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, today));
                                 }
                             }
+
+                            // ✅ Sort logic:
+                            tasks.sort((t1, t2) -> {
+                                // Incomplete tasks first
+                                boolean t1Done = t1.isCompleted();
+                                boolean t2Done = t2.isCompleted();
+
+                                if (t1Done != t2Done) {
+                                    return t1Done ? 1 : -1; // Completed = lower priority
+                                }
+
+                                // ✅ If both are completed, prioritize latest completion
+                                if (t1Done && t2Done) {
+                                    long t1Time = t1.getDate().getTime();
+                                    long t2Time = t2.getDate().getTime();
+                                    return Long.compare(t2Time, t1Time); // latest first
+                                }
+
+                                // ✅ If both are incomplete, sort by scheduled time
+                                return Long.compare(t1.getDate().getTime(), t2.getDate().getTime());
+                            });
+
                             taskAdapter.setTasks(tasks);
                         });
             }
