@@ -58,10 +58,8 @@ public class CalendarFragment extends Fragment {
 
         taskAdapter.setOnTaskClickListener(this::showUpdateDialog);
 
-        // ✅ Completion listener for checkbox interaction
         taskAdapter.setOnTaskCheckChangedListener((task, isChecked) -> {
             long dateEpoch = getSelectedDateEpoch();
-
             if (task.getType() == TaskType.REMINDER) {
                 if (isChecked) {
                     taskCompletionViewModel.markTaskCompleted(task.getId(), dateEpoch);
@@ -87,7 +85,7 @@ public class CalendarFragment extends Fragment {
             filterTasksByDate();
         });
 
-        observeCompletionsForSelectedDate(); // Observe reminder completions
+        observeCompletionsForSelectedDate();
     }
 
     private void setupCalendarView() {
@@ -116,15 +114,35 @@ public class CalendarFragment extends Fragment {
         List<Task> filteredTasks = new ArrayList<>();
 
         for (Task task : allTasks) {
-            boolean isReminder = task.getType() == TaskType.REMINDER;
-            Date effectiveDate = TaskUtils.getEffectiveDisplayDate(task, selected);
-            task.setDisplayDate(effectiveDate);
-            boolean isScheduledForSelectedDay = isSameDay(effectiveDate, selected);
+            boolean shouldShow = false;
 
-            if (isScheduledForSelectedDay || isReminder) {
-                if (isReminder) {
+            if (task.getType() == TaskType.REMINDER) {
+                switch (task.getRepeatMode()) {
+                    case DAILY:
+                        shouldShow = true;
+                        break;
+                    case WEEKLY:
+                        shouldShow = isSameDayOfWeek(task.getDate(), selected);
+                        break;
+                    case MONTHLY:
+                        shouldShow = isSameDayOfMonth(task.getDate(), selected);
+                        break;
+                    case NONE:
+                    default:
+                        shouldShow = isSameDay(task.getDate(), selected);
+                        break;
+                }
+
+                if (shouldShow) {
                     task.setCompleted(isTaskMarkedCompleted(task.getId(), selectedEpoch));
                 }
+
+            } else {
+                shouldShow = isSameDay(task.getDate(), selected);
+            }
+
+            if (shouldShow) {
+                task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, selected));
                 filteredTasks.add(task);
             }
         }
@@ -136,13 +154,20 @@ public class CalendarFragment extends Fragment {
         }
     }
 
-    private boolean isTaskMarkedCompleted(long taskId, long dateEpoch) {
-        for (TaskCompletion completion : taskCompletionsForDate) {
-            if (completion.getTaskId() == taskId && completion.getDate() == dateEpoch) {
-                return completion.isCompleted();
-            }
-        }
-        return false;
+    private boolean isSameDayOfWeek(Date d1, Date d2) {
+        Calendar c1 = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c1.setTime(d1);
+        c2.setTime(d2);
+        return c1.get(Calendar.DAY_OF_WEEK) == c2.get(Calendar.DAY_OF_WEEK);
+    }
+
+    private boolean isSameDayOfMonth(Date d1, Date d2) {
+        Calendar c1 = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c1.setTime(d1);
+        c2.setTime(d2);
+        return c1.get(Calendar.DAY_OF_MONTH) == c2.get(Calendar.DAY_OF_MONTH);
     }
 
     private boolean isSameDay(Date d1, Date d2) {
@@ -153,6 +178,15 @@ public class CalendarFragment extends Fragment {
         c2.setTime(d2);
         return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR)
                 && c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private boolean isTaskMarkedCompleted(long taskId, long dateEpoch) {
+        for (TaskCompletion completion : taskCompletionsForDate) {
+            if (completion.getTaskId() == taskId && completion.getDate() == dateEpoch) {
+                return completion.isCompleted();
+            }
+        }
+        return false;
     }
 
     private long getSelectedDateEpoch() {
