@@ -28,6 +28,9 @@ public class Task implements Serializable {
     private RepeatMode repeatMode;      // NONE, DAILY, WEEKLY, MONTHLY
     private long createdAt;     // Unix timestamp
 
+    @Ignore
+    private Date displayDate;
+
     // 🔨 Default Constructor
     public Task() {
         this.createdAt = System.currentTimeMillis();
@@ -74,4 +77,12 @@ public class Task implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public Date getDisplayDate() {
+        return displayDate != null ? displayDate : date;
+    }
+
+    public void setDisplayDate(Date displayDate) {
+        this.displayDate = displayDate;
+    }
 }

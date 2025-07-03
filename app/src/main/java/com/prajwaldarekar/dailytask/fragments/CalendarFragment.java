@@ -14,6 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.prajwaldarekar.dailytask.adapters.TaskAdapter;
 import com.prajwaldarekar.dailytask.databinding.FragmentCalendarBinding;
 import com.prajwaldarekar.dailytask.models.Task;
+import com.prajwaldarekar.dailytask.models.TaskCompletion;
+import com.prajwaldarekar.dailytask.models.TaskType;
+import com.prajwaldarekar.dailytask.utils.TaskUtils;
+import com.prajwaldarekar.dailytask.viewmodel.TaskCompletionViewModel;
 import com.prajwaldarekar.dailytask.viewmodel.TaskViewModel;
 
 import java.text.SimpleDateFormat;
@@ -28,9 +32,11 @@ public class CalendarFragment extends Fragment {
     private FragmentCalendarBinding binding;
     private TaskAdapter taskAdapter;
     private TaskViewModel taskViewModel;
+    private TaskCompletionViewModel taskCompletionViewModel;
 
     private final Calendar selectedDate = Calendar.getInstance();
     private List<Task> allTasks = new ArrayList<>();
+    private List<TaskCompletion> taskCompletionsForDate = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,71 +47,165 @@ public class CalendarFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initRecyclerView();
-        initViewModel();
-        initCalendarListener();
+        setupRecyclerView();
+        setupViewModels();
+        setupCalendarView();
         updateDateHeader();
     }
 
-    private void initRecyclerView() {
+    private void setupRecyclerView() {
         taskAdapter = new TaskAdapter(requireContext());
+
         taskAdapter.setOnTaskClickListener(this::showUpdateDialog);
+
+        taskAdapter.setOnTaskCheckChangedListener((task, isChecked) -> {
+            long dateEpoch = getSelectedDateEpoch();
+            if (task.getType() == TaskType.REMINDER) {
+                if (isChecked) {
+                    taskCompletionViewModel.markTaskCompleted(task.getId(), dateEpoch);
+                } else {
+                    taskCompletionViewModel.deleteCompletion(task.getId(), dateEpoch);
+                }
+            } else {
+                task.setCompleted(isChecked);
+                taskViewModel.update(task);
+            }
+        });
 
         binding.recyclerViewCalendarTasks.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerViewCalendarTasks.setAdapter(taskAdapter);
     }
 
-    private void initViewModel() {
+    private void setupViewModels() {
         taskViewModel = new ViewModelProvider(requireActivity()).get(TaskViewModel.class);
+        taskCompletionViewModel = new ViewModelProvider(requireActivity()).get(TaskCompletionViewModel.class);
+
         taskViewModel.getAllTasks().observe(getViewLifecycleOwner(), tasks -> {
             allTasks = tasks != null ? tasks : new ArrayList<>();
             filterTasksByDate();
         });
+
+        observeCompletionsForSelectedDate();
     }
 
-    private void initCalendarListener() {
+    private void setupCalendarView() {
         binding.calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
             selectedDate.set(year, month, dayOfMonth);
             updateDateHeader();
-            filterTasksByDate();
+            observeCompletionsForSelectedDate();
         });
     }
 
+    private void observeCompletionsForSelectedDate() {
+        taskCompletionViewModel.getAllForDate(getSelectedDateEpoch())
+                .observe(getViewLifecycleOwner(), completions -> {
+                    taskCompletionsForDate = completions != null ? completions : new ArrayList<>();
+                    filterTasksByDate();
+                });
+    }
+
     private void updateDateHeader() {
-        String formattedDate = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(selectedDate.getTime());
-        binding.textViewSelectedDate.setText("Tasks for: " + formattedDate);
+        binding.textViewSelectedDate.setText("Tasks for: " + formatDate(selectedDate.getTime()));
     }
 
     private void filterTasksByDate() {
         Date selected = selectedDate.getTime();
-        List<Task> filtered = new ArrayList<>();
+        long selectedEpoch = getSelectedDateEpoch();
+        List<Task> filteredTasks = new ArrayList<>();
 
         for (Task task : allTasks) {
-            if (isSameDay(task.getDate(), selected)) {
-                filtered.add(task);
+            boolean shouldShow = false;
+
+            if (task.getType() == TaskType.REMINDER) {
+                switch (task.getRepeatMode()) {
+                    case DAILY:
+                        shouldShow = true;
+                        break;
+                    case WEEKLY:
+                        shouldShow = isSameDayOfWeek(task.getDate(), selected);
+                        break;
+                    case MONTHLY:
+                        shouldShow = isSameDayOfMonth(task.getDate(), selected);
+                        break;
+                    case NONE:
+                    default:
+                        shouldShow = isSameDay(task.getDate(), selected);
+                        break;
+                }
+
+                if (shouldShow) {
+                    task.setCompleted(isTaskMarkedCompleted(task.getId(), selectedEpoch));
+                }
+
+            } else {
+                shouldShow = isSameDay(task.getDate(), selected);
+            }
+
+            if (shouldShow) {
+                task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, selected));
+                filteredTasks.add(task);
             }
         }
 
-        taskAdapter.setTasks(filtered);
+        taskAdapter.setTasks(filteredTasks);
 
-        if (filtered.isEmpty()) {
-            binding.textViewSelectedDate.append(" (No tasks)");
+        if (filteredTasks.isEmpty()) {
+            binding.textViewSelectedDate.setText(formatDate(selected) + " (No tasks)");
         }
     }
 
-    private boolean isSameDay(Date date1, Date date2) {
-        if (date1 == null || date2 == null) return false;
-        Calendar cal1 = Calendar.getInstance();
-        Calendar cal2 = Calendar.getInstance();
-        cal1.setTime(date1);
-        cal2.setTime(date2);
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
+    private boolean isSameDayOfWeek(Date d1, Date d2) {
+        Calendar c1 = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c1.setTime(d1);
+        c2.setTime(d2);
+        return c1.get(Calendar.DAY_OF_WEEK) == c2.get(Calendar.DAY_OF_WEEK);
+    }
+
+    private boolean isSameDayOfMonth(Date d1, Date d2) {
+        Calendar c1 = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c1.setTime(d1);
+        c2.setTime(d2);
+        return c1.get(Calendar.DAY_OF_MONTH) == c2.get(Calendar.DAY_OF_MONTH);
+    }
+
+    private boolean isSameDay(Date d1, Date d2) {
+        if (d1 == null || d2 == null) return false;
+        Calendar c1 = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c1.setTime(d1);
+        c2.setTime(d2);
+        return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR)
+                && c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private boolean isTaskMarkedCompleted(long taskId, long dateEpoch) {
+        for (TaskCompletion completion : taskCompletionsForDate) {
+            if (completion.getTaskId() == taskId && completion.getDate() == dateEpoch) {
+                return completion.isCompleted();
+            }
+        }
+        return false;
+    }
+
+    private long getSelectedDateEpoch() {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(selectedDate.getTime());
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private String formatDate(Date date) {
+        return new SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(date);
     }
 
     private void showUpdateDialog(Task task) {
-        AddTaskDialogFragment dialogFragment = AddTaskDialogFragment.newInstance(task);
-        dialogFragment.show(getParentFragmentManager(), "UpdateTaskDialog");
+        AddTaskDialogFragment.newInstance(task)
+                .show(getParentFragmentManager(), "UpdateTaskDialog");
     }
 
     @Override

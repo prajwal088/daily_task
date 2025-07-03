@@ -18,6 +18,7 @@ import com.prajwaldarekar.dailytask.models.TaskType;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,6 +26,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     private final List<Task> taskList = new ArrayList<>();
     private final Context context;
+
     private OnTaskClickListener taskClickListener;
     private OnTaskCheckChangedListener checkChangedListener;
 
@@ -97,65 +99,66 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         public void bind(Task task) {
             textTitle.setText(task.getTitle());
 
-            // Type label + Repeat if applicable
+            // 🔷 Type label + Repeat info
             String typeLabel = task.getType().name();
-            if (task.getType() == TaskType.REMINDER) {
-                String repeat = (task.getRepeatMode() != null)
-                        ? task.getRepeatMode().toString() : "None";
-                typeLabel += " | " + repeat;
+            if (task.getType() == TaskType.REMINDER && task.getRepeatMode() != null) {
+                typeLabel += " | " + task.getRepeatMode().name();
             }
             textType.setText(typeLabel);
 
-            // Date + Time
-            if (task.getDate() != null) {
-                textDate.setText(dateTimeFormat.format(task.getDate()));
+            // 🔶 Date display
+            Date taskDate = task.getDisplayDate();
+            boolean isMissedReminder = false;
+
+            if (taskDate != null) {
+                textDate.setText(dateTimeFormat.format(taskDate));
+                if (task.getType() == TaskType.REMINDER && !task.isCompleted()) {
+                    isMissedReminder = taskDate.before(new Date());
+                }
             } else {
                 textDate.setText("No Date");
             }
 
-            // Color badge
-            int colorResId = R.color.green;
+            // 🎨 Color badge logic
+            int colorRes = R.color.green;
             switch (task.getType()) {
-                case REMINDER:
-                    colorResId = R.color.red;
+                case TASK:
+                    colorRes = R.color.purple_500;
                     break;
                 case NOTE:
-                    colorResId = R.color.blue;
+                    colorRes = R.color.blue;
                     break;
-                case TASK:
-                    colorResId = R.color.purple_500;
+                case REMINDER:
+                    colorRes = isMissedReminder ? R.color.red : R.color.green;
                     break;
             }
-            viewColorBadge.setBackgroundColor(
-                    ContextCompat.getColor(context, colorResId)
-            );
+            viewColorBadge.setBackgroundColor(ContextCompat.getColor(context, colorRes));
 
-            // Prevent rebinding side effects
+            // ✅ Checkbox and strikethrough
             checkBox.setOnCheckedChangeListener(null);
             checkBox.setChecked(task.isCompleted());
+            applyStrikeThrough(task.isCompleted());
 
-            // Strike-through if completed
-            for (TextView view : new TextView[]{textTitle, textType, textDate}) {
-                view.setPaintFlags(task.isCompleted()
-                        ? view.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
-                        : view.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
-            }
-
-            // Handle checkbox check
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (checkChangedListener != null && isChecked != task.isCompleted()) {
                     checkChangedListener.onCheckChanged(task, isChecked);
                 }
             });
 
-            // Handle item click
+            // 🖱️ Click listener
             itemView.setOnClickListener(v -> {
                 if (taskClickListener != null) {
                     taskClickListener.onTaskClick(task);
-                } else {
-                    checkBox.performClick(); // fallback
                 }
             });
+        }
+
+        private void applyStrikeThrough(boolean isCompleted) {
+            for (TextView tv : new TextView[]{textTitle, textType, textDate}) {
+                tv.setPaintFlags(isCompleted
+                        ? tv.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
+                        : tv.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
+            }
         }
     }
 }
