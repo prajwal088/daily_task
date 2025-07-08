@@ -3,6 +3,7 @@ package com.prajwaldarekar.dailytask.models;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 /**
@@ -24,11 +25,26 @@ public class TaskCompletion {
     @ColumnInfo(name = "is_completed")
     private boolean isCompleted;
 
-    // Constructor
+    @ColumnInfo(name = "completed_at")
+    private Long completedAt;  // Timestamp when task was completed (nullable)
+
+    // ✅ Default constructor required by Room
+    public TaskCompletion() {
+    }
+
+    // ✅ Custom constructor (ignored by Room)
+    @Ignore
     public TaskCompletion(long taskId, long date, boolean isCompleted) {
+        this(taskId, date, isCompleted, isCompleted ? System.currentTimeMillis() : null);
+    }
+
+    // ✅ Custom constructor (ignored by Room)
+    @Ignore
+    public TaskCompletion(long taskId, long date, boolean isCompleted, Long completedAt) {
         this.taskId = taskId;
         this.date = date;
         this.isCompleted = isCompleted;
+        this.completedAt = completedAt;
     }
 
     // Getters and Setters
@@ -61,7 +77,15 @@ public class TaskCompletion {
     }
 
     public void setCompleted(boolean completed) {
-        this.isCompleted = completed;
+        isCompleted = completed;
+    }
+
+    public Long getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(Long completedAt) {
+        this.completedAt = completedAt;
     }
 
     @NonNull
@@ -72,6 +96,7 @@ public class TaskCompletion {
                 ", taskId=" + taskId +
                 ", date=" + date +
                 ", isCompleted=" + isCompleted +
+                ", completedAt=" + completedAt +
                 '}';
     }
 }

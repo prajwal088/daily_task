@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.prajwaldarekar.dailytask.databinding.FragmentAddTaskDialogBinding;
@@ -246,6 +248,16 @@ public class AddTaskDialogFragment extends DialogFragment {
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(requireContext(), "Failed to save task: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
+
+        Fragment parent = getParentFragment();
+        if (parent instanceof TasksFragment) {
+            ((TasksFragment) parent).onDialogDismissed();
         }
     }
 

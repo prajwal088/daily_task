@@ -3,7 +3,6 @@ package com.prajwaldarekar.dailytask.fragments;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,25 +11,29 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.prajwaldarekar.dailytask.adapters.TaskAdapter;
 import com.prajwaldarekar.dailytask.databinding.FragmentTasksBinding;
 import com.prajwaldarekar.dailytask.models.Task;
 import com.prajwaldarekar.dailytask.models.TaskType;
 import com.prajwaldarekar.dailytask.utils.TaskUtils;
+import com.prajwaldarekar.dailytask.models.TaskCompletion;
 import com.prajwaldarekar.dailytask.viewmodel.TaskCompletionViewModel;
 import com.prajwaldarekar.dailytask.viewmodel.TaskViewModel;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-
-// 🔄 Imports remain the same...
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TasksFragment extends Fragment {
 
@@ -39,9 +42,10 @@ public class TasksFragment extends Fragment {
     private TaskViewModel taskViewModel;
     private TaskCompletionViewModel taskCompletionViewModel;
 
-    private static final String TAG = "TasksFragment";
     private static final String TOAST_COMPLETE = "Marked completed for today";
     private static final String TOAST_INCOMPLETE = "Marked incomplete for today";
+
+    private boolean isDialogOpen = false;
 
     private long todayEpoch;
 
@@ -52,12 +56,11 @@ public class TasksFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         todayEpoch = getTodayEpochMillis();
         initViewModels();
         setupRecyclerView();
-        observeTasks();
+        observeTasksWithCompletions();
         setupFab();
         setupSwipeActions();
     }
@@ -87,7 +90,6 @@ public class TasksFragment extends Fragment {
                 TaskDetailsDialogFragment.newInstance(task)
                         .show(getParentFragmentManager(), "taskDetail");
             } catch (Exception e) {
-                Log.e(TAG, "Error showing TaskDetailsDialogFragment", e);
                 Toast.makeText(requireContext(), "Unable to open task details", Toast.LENGTH_SHORT).show();
             }
         });
@@ -98,49 +100,79 @@ public class TasksFragment extends Fragment {
         binding.recyclerViewTasks.setAdapter(taskAdapter);
     }
 
-    private void observeTasks() {
-        taskViewModel.getAllTasks().observe(getViewLifecycleOwner(), tasks -> {
-            if (tasks != null) {
-                taskCompletionViewModel.getAllForDate(todayEpoch)
-                        .observe(getViewLifecycleOwner(), completions -> {
-                            Date today = new Date(todayEpoch);
-                            for (Task task : tasks) {
-                                if (task.getType() == TaskType.REMINDER) {
-                                    task.setCompleted(isTaskMarkedCompleted(task.getId(), completions));
-                                    task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, today));
-                                }
+    private void observeTasksWithCompletions() {
+        MediatorLiveData<List<Task>> combinedData = new MediatorLiveData<>();
+        List<Task> currentTasks = new ArrayList<>();
+        List<TaskCompletion> currentCompletions = new ArrayList<>();
+
+        Observer<Object> updateObserver = ignored -> {
+            if (!currentTasks.isEmpty()) {
+                Date today = new Date(todayEpoch);
+
+                for (Task task : currentTasks) {
+                    if (task.getType() == TaskType.REMINDER) {
+                        task.setCompleted(isTaskMarkedCompleted(task.getId(), currentCompletions));
+                        task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, today));
+                    }
+                }
+
+                List<Task> sorted = currentTasks.stream()
+                        .sorted((t1, t2) -> {
+                            boolean t1Completed = t1.isCompleted();
+                            boolean t2Completed = t2.isCompleted();
+
+                            if (t1Completed != t2Completed) {
+                                return Boolean.compare(t1Completed, t2Completed); // incomplete first
                             }
 
-                            // ✅ Sort logic:
-                            tasks.sort((t1, t2) -> {
-                                // Incomplete tasks first
-                                boolean t1Done = t1.isCompleted();
-                                boolean t2Done = t2.isCompleted();
+                            Date now = new Date();
+                            Date t1Date = t1.getDate() != null ? t1.getDate() : new Date(0);
+                            Date t2Date = t2.getDate() != null ? t2.getDate() : new Date(0);
 
-                                if (t1Done != t2Done) {
-                                    return t1Done ? 1 : -1; // Completed = lower priority
-                                }
+                            boolean t1Overdue = t1Date.before(now) && !t1Completed;
+                            boolean t2Overdue = t2Date.before(now) && !t2Completed;
 
-                                // ✅ If both are completed, prioritize latest completion
-                                if (t1Done && t2Done) {
-                                    long t1Time = t1.getDate().getTime();
-                                    long t2Time = t2.getDate().getTime();
-                                    return Long.compare(t2Time, t1Time); // latest first
-                                }
+                            if (t1Overdue != t2Overdue)
+                                return Boolean.compare(!t1Overdue, !t2Overdue); // overdue first
 
-                                // ✅ If both are incomplete, sort by scheduled time
-                                return Long.compare(t1.getDate().getTime(), t2.getDate().getTime());
-                            });
+                            if (t1Completed) {
+                                long t1Time = getCompletedAt(t1.getId(), currentCompletions);
+                                long t2Time = getCompletedAt(t2.getId(), currentCompletions);
+                                return Long.compare(t2Time, t1Time); // latest completed first
+                            }
 
-                            taskAdapter.setTasks(tasks);
-                        });
+                            return Long.compare(t1Date.getTime(), t2Date.getTime());
+                        })
+                        .collect(Collectors.toList());
+
+                taskAdapter.setTasks(sorted);
             }
+        };
+
+        taskViewModel.getAllTasks().observe(getViewLifecycleOwner(), tasks -> {
+            currentTasks.clear();
+            if (tasks != null) currentTasks.addAll(tasks);
+            updateObserver.onChanged(null);
+        });
+
+        taskCompletionViewModel.getAllForDate(todayEpoch).observe(getViewLifecycleOwner(), completions -> {
+            currentCompletions.clear();
+            if (completions != null) currentCompletions.addAll(completions);
+            updateObserver.onChanged(null);
         });
     }
 
+    private long getCompletedAt(long taskId, List<TaskCompletion> completions) {
+        for (TaskCompletion c : completions) {
+            if (c.getTaskId() == taskId && c.isCompleted()) {
+                return c.getCompletedAt();
+            }
+        }
+        return 0;
+    }
 
-    private boolean isTaskMarkedCompleted(long taskId, java.util.List<com.prajwaldarekar.dailytask.models.TaskCompletion> completions) {
-        for (com.prajwaldarekar.dailytask.models.TaskCompletion c : completions) {
+    private boolean isTaskMarkedCompleted(long taskId, List<TaskCompletion> completions) {
+        for (TaskCompletion c : completions) {
             if (c.getTaskId() == taskId && c.isCompleted()) {
                 return true;
             }
@@ -148,17 +180,36 @@ public class TasksFragment extends Fragment {
         return false;
     }
 
+    private static final long DEBOUNCE_DELAY_MS = 700;
+    private boolean isFabClickable = true;
+
     private void setupFab() {
         binding.fabAddTask.setOnClickListener(v -> {
+            if (!isFabClickable || isDialogOpen) return;
+
+            isFabClickable = false;
+
             try {
-                AddTaskDialogFragment.newInstance(null)
-                        .show(getParentFragmentManager(), "addTask");
+                AddTaskDialogFragment dialog = AddTaskDialogFragment.newInstance(null);
+                dialog.show(getChildFragmentManager(), "addTask");
+                isDialogOpen = true;
+
             } catch (Exception e) {
-                Log.e(TAG, "Error opening AddTaskDialogFragment", e);
                 Toast.makeText(requireContext(), "Unable to open add task dialog", Toast.LENGTH_SHORT).show();
+                isDialogOpen = false; // fallback if dialog fails
             }
+
+            // Re-enable FAB tap after short delay
+            binding.fabAddTask.postDelayed(() -> isFabClickable = true, DEBOUNCE_DELAY_MS);
         });
     }
+
+    // Callback for dialog dismissal
+    public void onDialogDismissed() {
+        isDialogOpen = false;
+        Log.d("TasksFragment", "Dialog dismissed and flag reset.");
+    }
+
 
     private void setupSwipeActions() {
         ItemTouchHelper.SimpleCallback callback = new ItemTouchHelper.SimpleCallback(0,
@@ -179,13 +230,14 @@ public class TasksFragment extends Fragment {
 
                 if (direction == ItemTouchHelper.LEFT) {
                     taskViewModel.delete(task);
-                    Toast.makeText(requireContext(), "Task deleted", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(binding.getRoot(), "Task deleted", Snackbar.LENGTH_LONG)
+                            .setAction("Undo", v -> taskViewModel.insert(task))
+                            .show();
                 } else {
                     try {
                         AddTaskDialogFragment.newInstance(task)
                                 .show(getParentFragmentManager(), "editTask");
                     } catch (Exception e) {
-                        Log.e(TAG, "Error opening edit task dialog", e);
                         Toast.makeText(requireContext(), "Unable to edit task", Toast.LENGTH_SHORT).show();
                     }
                 }

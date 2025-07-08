@@ -27,7 +27,8 @@ public class TaskCompletionRepository {
      */
     public void markTaskCompleted(long taskId, long date) {
         executorService.execute(() -> {
-            TaskCompletion completion = new TaskCompletion(taskId, date, true);
+            long completedAt = System.currentTimeMillis();
+            TaskCompletion completion = new TaskCompletion(taskId, date, true, completedAt);
             completionDao.insertOrUpdate(completion);
         });
     }
