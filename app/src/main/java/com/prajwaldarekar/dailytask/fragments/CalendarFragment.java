@@ -117,35 +117,39 @@ public class CalendarFragment extends Fragment {
             boolean shouldShow = false;
 
             if (task.getType() == TaskType.REMINDER) {
-                switch (task.getRepeatMode()) {
-                    case DAILY:
-                        shouldShow = true;
-                        break;
-                    case WEEKLY:
-                        shouldShow = isSameDayOfWeek(task.getDate(), selected);
-                        break;
-                    case MONTHLY:
-                        shouldShow = isSameDayOfMonth(task.getDate(), selected);
-                        break;
-                    case NONE:
-                    default:
-                        shouldShow = isSameDay(task.getDate(), selected);
-                        break;
-                }
+                Date effectiveDate = TaskUtils.getEffectiveDisplayDate(task, selected);
 
-                if (shouldShow) {
+                if (isSameDay(effectiveDate, selected)) {
+                    shouldShow = true;
                     task.setCompleted(isTaskMarkedCompleted(task.getId(), selectedEpoch));
+                    task.setDisplayDate(effectiveDate);
                 }
 
             } else {
-                shouldShow = isSameDay(task.getDate(), selected);
+                if (isSameDay(task.getDate(), selected)) {
+                    shouldShow = true;
+                    task.setDisplayDate(task.getDate());
+                }
             }
 
             if (shouldShow) {
-                task.setDisplayDate(TaskUtils.getEffectiveDisplayDate(task, selected));
                 filteredTasks.add(task);
             }
         }
+
+        // ✅ Sort: Incomplete > Due > Completed
+        filteredTasks.sort((t1, t2) -> {
+            boolean t1Completed = t1.isCompleted();
+            boolean t2Completed = t2.isCompleted();
+
+            // Incomplete first
+            if (t1Completed != t2Completed) {
+                return t1Completed ? 1 : -1;
+            }
+
+            // If both same completion state, compare by time (earlier due time comes first)
+            return Long.compare(t1.getDisplayDate().getTime(), t2.getDisplayDate().getTime());
+        });
 
         taskAdapter.setTasks(filteredTasks);
 
@@ -154,20 +158,13 @@ public class CalendarFragment extends Fragment {
         }
     }
 
-    private boolean isSameDayOfWeek(Date d1, Date d2) {
-        Calendar c1 = Calendar.getInstance();
-        Calendar c2 = Calendar.getInstance();
-        c1.setTime(d1);
-        c2.setTime(d2);
-        return c1.get(Calendar.DAY_OF_WEEK) == c2.get(Calendar.DAY_OF_WEEK);
-    }
-
-    private boolean isSameDayOfMonth(Date d1, Date d2) {
-        Calendar c1 = Calendar.getInstance();
-        Calendar c2 = Calendar.getInstance();
-        c1.setTime(d1);
-        c2.setTime(d2);
-        return c1.get(Calendar.DAY_OF_MONTH) == c2.get(Calendar.DAY_OF_MONTH);
+    private boolean isTaskMarkedCompleted(long taskId, long dateEpoch) {
+        for (TaskCompletion completion : taskCompletionsForDate) {
+            if (completion.getTaskId() == taskId && completion.getDate() == dateEpoch) {
+                return completion.isCompleted();
+            }
+        }
+        return false;
     }
 
     private boolean isSameDay(Date d1, Date d2) {
@@ -178,15 +175,6 @@ public class CalendarFragment extends Fragment {
         c2.setTime(d2);
         return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR)
                 && c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
-    }
-
-    private boolean isTaskMarkedCompleted(long taskId, long dateEpoch) {
-        for (TaskCompletion completion : taskCompletionsForDate) {
-            if (completion.getTaskId() == taskId && completion.getDate() == dateEpoch) {
-                return completion.isCompleted();
-            }
-        }
-        return false;
     }
 
     private long getSelectedDateEpoch() {
