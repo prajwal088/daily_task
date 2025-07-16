@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/colorSurface"
-    android:padding="24dp">
+    android:layout_marginHorizontal="24dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:elevation="4dp"
+    app:cardCornerRadius="16dp"
+    app:strokeColor="@android:color/darker_gray"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="20dp">
 
         <!-- Title -->
         <TextView
@@ -20,8 +26,8 @@
             android:text="@string/task_title_01"
             android:textStyle="bold"
             android:textColor="?android:textColorPrimary"
+            android:textSize="20sp"
             android:layout_marginBottom="12dp"
-            android:textSize="22sp"
             tools:text="Buy Groceries" />
 
         <!-- Description -->
@@ -31,8 +37,8 @@
             android:layout_height="wrap_content"
             android:text="@string/task_description_here"
             android:textColor="?android:textColorSecondary"
+            android:textSize="16sp"
             android:layout_marginBottom="24dp"
-            android:textSize="18sp"
             tools:text="Milk, Bread, Eggs, and Fruits" />
 
         <!-- Buttons -->
@@ -48,8 +54,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="@string/edit"
-                android:contentDescription="@string/edit" />
+                android:text="@string/edit" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCloseSheet"
@@ -57,8 +62,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/close"
-                android:contentDescription="@string/close" />
+                android:text="@string/close" />
         </LinearLayout>
     </LinearLayout>
-</ScrollView>
+</com.google.android.material.card.MaterialCardView>
